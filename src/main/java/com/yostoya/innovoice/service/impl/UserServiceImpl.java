@@ -22,4 +22,9 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDTO(userRepository.create(user));
     }
 
+    @Override
+    public UserDTO getUserByEmail(String email) {
+        return userMapper.toDTO(userRepository.getUserByEmail(email));
+    }
+
 }

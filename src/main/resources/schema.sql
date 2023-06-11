@@ -12,7 +12,24 @@ SET TIME_ZONE = 'Europe/Sofia';
 
 USE innovoices;
 
-DROP TABLE IF EXISTS Users;
+
+DROP TABLE IF EXISTS AccountVerifications CASCADE;
+
+DROP TABLE IF EXISTS ResetPasswordVerifications CASCADE;
+
+DROP TABLE IF EXISTS TwoFactorVerifications CASCADE;
+
+DROP TABLE IF EXISTS UserEvents CASCADE;
+
+DROP TABLE IF EXISTS Events CASCADE;
+
+DROP TABLE IF EXISTS UserRoles CASCADE;
+
+DROP TABLE IF EXISTS Roles CASCADE;
+
+DROP TABLE IF EXISTS Users CASCADE;
+
+
 CREATE TABLE Users
 (
     id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -24,15 +41,13 @@ CREATE TABLE Users
     phone      VARCHAR(30)  DEFAULT NULL,
     title      VARCHAR(50)  DEFAULT NULL,
     bio        VARCHAR(255) DEFAULT NULL,
-    enabled    BOOLEAN      DEFAULT FALSE,
+    enabled    BOOLEAN      DEFAULT TRUE,
     non_locked BOOLEAN      DEFAULT TRUE,
     using_mfa  BOOLEAN      DEFAULT FALSE,
     created_on DATETIME     DEFAULT CURRENT_TIMESTAMP,
     image_url  VARCHAR(255) DEFAULT 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
     CONSTRAINT UQ_Users_Email UNIQUE (email)
 );
-
-DROP TABLE IF EXISTS Roles;
 
 CREATE TABLE Roles
 (
@@ -41,8 +56,6 @@ CREATE TABLE Roles
     permission VARCHAR(255)    NOT NULL,
     CONSTRAINT UQ_Roles_Name UNIQUE (name)
 );
-
-DROP TABLE IF EXISTS UserRoles;
 
 CREATE TABLE UserRoles
 (
@@ -62,8 +75,6 @@ VALUES ('ROLE_USER', 'READ:USER,READ:CUSTOMER'),
         'READ:USER,READ:CUSTOMER,UPDATE:USER,UPDATE:CUSTOMER,CREATE:USER,CREATE:CUSTOMER,DELETE:USER, DELETE:CUSTOMER');
 
 
-DROP TABLE IF EXISTS Events;
-
 CREATE TABLE Events
 (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -74,8 +85,6 @@ CREATE TABLE Events
     description VARCHAR(255)    NOT NULL,
     CONSTRAINT UQ_Events_Type UNIQUE (type)
 );
-
-DROP TABLE IF EXISTS UserEvents;
 
 CREATE TABLE UserEvents
 (
@@ -89,8 +98,6 @@ CREATE TABLE UserEvents
     FOREIGN KEY (event_id) REFERENCES Events (id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
-DROP TABLE IF EXISTS AccountVerifications;
-
 CREATE TABLE AccountVerifications
 (
     id      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -100,8 +107,6 @@ CREATE TABLE AccountVerifications
     CONSTRAINT UQ_AccountVerifications_UserId UNIQUE (user_id),
     CONSTRAINT UQ_AccountVerifications_Url UNIQUE (url)
 );
-
-DROP TABLE IF EXISTS ResetPasswordVerifications;
 
 CREATE TABLE ResetPasswordVerifications
 (
@@ -113,8 +118,6 @@ CREATE TABLE ResetPasswordVerifications
     CONSTRAINT UQ_ResetPasswordVerifications_UserId UNIQUE (user_id),
     CONSTRAINT UQ_ResetPasswordVerifications_Url UNIQUE (url)
 );
-
-DROP TABLE IF EXISTS TwoFactorVerifications;
 
 CREATE TABLE TwoFactorVerifications
 (

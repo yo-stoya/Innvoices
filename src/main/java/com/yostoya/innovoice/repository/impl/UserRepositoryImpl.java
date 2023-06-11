@@ -5,17 +5,22 @@ import com.yostoya.innovoice.domain.User;
 import com.yostoya.innovoice.exception.ApiException;
 import com.yostoya.innovoice.repository.RoleRepository;
 import com.yostoya.innovoice.repository.UserRepository;
+import com.yostoya.innovoice.rowmapper.UserRowMapper;
+import com.yostoya.innovoice.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +34,7 @@ import static java.util.Objects.requireNonNull;
 @Repository
 @RequiredArgsConstructor
 @Slf4j
-public class UserRepositoryImpl implements UserRepository<User> {
+public class UserRepositoryImpl implements UserRepository<User>, UserDetailsService {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
@@ -60,6 +65,7 @@ public class UserRepositoryImpl implements UserRepository<User> {
 
             user.setEnabled(false);
             user.setIsNotLocked(true);
+            log.info("Verification URL: {} ", verificationUrl);
 
             return user;
 
@@ -89,6 +95,32 @@ public class UserRepositoryImpl implements UserRepository<User> {
         return null;
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
+        var user = getUserByEmail(email);
+
+        if (user == null) {
+            log.error("User not found");
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        log.info("User found in database");
+        return new UserPrincipal(user,roleRepository.getRoleByUserId(user.getId()).getPermission());
+    }
+
+    @Override
+    public User getUserByEmail(String email) {
+        try {
+            return jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ApiException("No User found by email: " + email);
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            throw new ApiException("An error occurred. Please try again.");
+        }
+    }
+
     private Integer getEmailCount(String email) {
         return jdbc.queryForObject(COUNT_USER_EMAIL_QUERY, Map.of("email", email), Integer.class);
     }
@@ -99,6 +131,7 @@ public class UserRepositoryImpl implements UserRepository<User> {
                 .addValue("lastName", user.getLastName())
                 .addValue("email", user.getEmail())
                 .addValue("password", encoder.encode(user.getPassword()));
+
     }
 
     private String getVerificationUrl(String key, String type) {

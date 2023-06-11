@@ -8,4 +8,10 @@ public class RoleQuery {
             INSERT INTO UserRoles (user_id, role_id)
             VALUES (:userId, :roleId)
             """;
+    public static final String SELECT_ROLE_BY_USER_ID = """
+            SELECT r.id, r.name, r.permission FROM Roles r
+            JOIN UserRoles ur ON r.id = ur.role_id
+            JOIN Users u ON ur.user_id = u.id
+            WHERE u.id = :userId
+            """;
 }
