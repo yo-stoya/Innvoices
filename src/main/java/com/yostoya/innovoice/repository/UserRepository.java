@@ -1,6 +1,7 @@
 package com.yostoya.innovoice.repository;
 
 import com.yostoya.innovoice.domain.User;
+import com.yostoya.innovoice.dto.UserDTO;
 
 import java.util.Collection;
 
@@ -18,4 +19,5 @@ public interface UserRepository<T extends User> {
 
     User getUserByEmail(String email);
 
+    void sendVerificationCode(UserDTO user);
 }

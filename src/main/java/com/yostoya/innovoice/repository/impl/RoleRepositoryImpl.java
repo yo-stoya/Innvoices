@@ -76,8 +76,11 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
         log.info("Fetching Role by User id: {}", userId);
 
         try {
+
             return jdbc.queryForObject(SELECT_ROLE_BY_USER_ID,
-                    Map.of("userId", userId), new RoleRowMapper());
+                    Map.of("userId", userId),
+                    new RoleRowMapper());
+
         } catch (EmptyResultDataAccessException ex) {
             throw new ApiException("No role found by User id: " + userId);
         } catch (Exception ex) {

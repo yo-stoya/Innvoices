@@ -21,7 +21,7 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         final var exceptionResponse = HttpResponse.builder()
-                .timestamp(now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")))
+                .timestamp(now())
                 .status(UNAUTHORIZED)
                 .statusCode(UNAUTHORIZED.value())
                 .reason("You need to be logged in to proceed.")

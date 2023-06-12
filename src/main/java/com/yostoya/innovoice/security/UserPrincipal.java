@@ -1,5 +1,6 @@
 package com.yostoya.innovoice.security;
 
+import com.yostoya.innovoice.domain.Role;
 import com.yostoya.innovoice.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,11 +15,11 @@ import static java.util.Arrays.stream;
 public class UserPrincipal implements UserDetails {
 
     private final User user;
-    private final String permissions;
+    private final Role role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return stream(permissions.split(",")).map(SimpleGrantedAuthority::new).toList();
+        return stream(role.getPermission().split(",")).map(SimpleGrantedAuthority::new).toList();
     }
 
     @Override

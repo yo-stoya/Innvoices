@@ -22,7 +22,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
         final var exceptionResponse = HttpResponse.builder()
-                .timestamp(now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")))
+                .timestamp(now())
                 .status(FORBIDDEN)
                 .statusCode(FORBIDDEN.value())
                 .reason("Access denied. Invalid permissions")

@@ -2,6 +2,7 @@ package com.yostoya.innovoice.repository.impl;
 
 import com.yostoya.innovoice.domain.Role;
 import com.yostoya.innovoice.domain.User;
+import com.yostoya.innovoice.dto.UserDTO;
 import com.yostoya.innovoice.exception.ApiException;
 import com.yostoya.innovoice.repository.RoleRepository;
 import com.yostoya.innovoice.repository.UserRepository;
@@ -22,20 +23,26 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
 import static com.yostoya.innovoice.enums.RoleType.ROLE_USER;
 import static com.yostoya.innovoice.enums.VerificationType.ACCOUNT;
 import static com.yostoya.innovoice.query.UserQuery.*;
+import static com.yostoya.innovoice.service.impl.SMSService.sendSMS;
 import static java.time.LocalDateTime.now;
 import static java.util.Objects.requireNonNull;
+import static org.apache.commons.lang3.RandomStringUtils.*;
+import static org.apache.commons.lang3.time.DateFormatUtils.format;
+import static org.apache.commons.lang3.time.DateUtils.addDays;
 
 @Repository
 @RequiredArgsConstructor
 @Slf4j
 public class UserRepositoryImpl implements UserRepository<User>, UserDetailsService {
 
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private final NamedParameterJdbcTemplate jdbc;
     private final RoleRepository<Role> roleRepository;
     private final PasswordEncoder encoder;
@@ -106,15 +113,44 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
 
         log.info("User found in database");
-        return new UserPrincipal(user,roleRepository.getRoleByUserId(user.getId()).getPermission());
+        return new UserPrincipal(user,roleRepository.getRoleByUserId(user.getId()));
     }
 
     @Override
     public User getUserByEmail(String email) {
         try {
+
             return jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
+
         } catch (EmptyResultDataAccessException ex) {
             throw new ApiException("No User found by email: " + email);
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            throw new ApiException("An error occurred. Please try again.");
+        }
+    }
+
+    @Override
+    public void sendVerificationCode(UserDTO user) {
+        var expirationDate = format(addDays(new Date(), 1), DATE_FORMAT);
+        var verificationCode = randomAlphanumeric(6);
+
+        try {
+
+            jdbc.update(DELETE_VERIFICATION_CODES_BY_USER_ID_QUERY, Map.of("id", user.id()));
+            jdbc.update(INSERT_VERIFICATION_CODE_QUERY, Map.of(
+                    "code", verificationCode,
+                    "expirationDate", expirationDate,
+                    "userId", user.id())
+            );
+
+            sendSMS(user.phone(), String.format("""
+                    From: Innovoice
+                    Hi %s,
+                    To activate your account, please enter the verification code: %s
+                    """, user.firstName(), verificationCode));
+
+
         } catch (Exception ex) {
             log.error(ex.getMessage());
             throw new ApiException("An error occurred. Please try again.");

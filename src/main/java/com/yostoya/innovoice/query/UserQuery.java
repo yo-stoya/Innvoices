@@ -15,4 +15,12 @@ public class UserQuery {
     public static final String SELECT_USER_BY_EMAIL_QUERY = """
             SELECT * FROM Users WHERE email = :email
             """;
+
+    public static final String DELETE_VERIFICATION_CODES_BY_USER_ID_QUERY = """
+            DELETE FROM TwoFactorVerifications WHERE user_id = :id
+            """;
+    public static final String INSERT_VERIFICATION_CODE_QUERY = """
+            INSERT INTO TwoFactorVerifications (user_id, code, expiration_date)
+            VALUES (:userId, :code, :expirationDate)
+            """;
 }

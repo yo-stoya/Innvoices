@@ -3,6 +3,7 @@ spring:
     url: jdbc:mysql://localhost:3306/innovoices?createDatabaseIfNotExist=true # &allowPublicKeyRetrieval=true
     username: root
     password: 123
+
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     generate-ddl: true
@@ -14,10 +15,22 @@ spring:
         globally_quoted_identifiers: true
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+
   sql:
     init:
       mode: always
       continue-on-error: false
+
+
+twilio:
+  from: +12532158121
+  sid: ACdac621750253cc5ea14b49642be56d84
+  token: a953b52c0cfdb0f015c245b64502cfb9
+
+
+jwt:
+  secret: supersecretcomplexsecret
+
 
 logging:
   level:
