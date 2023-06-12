@@ -30,7 +30,6 @@ import java.util.UUID;
 import static com.yostoya.innovoice.enums.RoleType.ROLE_USER;
 import static com.yostoya.innovoice.enums.VerificationType.ACCOUNT;
 import static com.yostoya.innovoice.query.UserQuery.*;
-import static com.yostoya.innovoice.service.impl.SMSService.sendSMS;
 import static java.time.LocalDateTime.now;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.RandomStringUtils.*;
@@ -55,6 +54,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
 
         try {
+
             var keyHolder = new GeneratedKeyHolder();
             var parameters = getSqlParameters(user);
 
@@ -68,6 +68,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
             jdbc.update(INSERT_ACCOUNT_VERIFICATION_URL_QUERY,
                     Map.of("userId", user.getId(), "url", verificationUrl));
+
             // emailService.sendVerificationUrl(user.getFirstName(), user.getEmail(), verificationUrl, ACCOUNT);
 
             user.setEnabled(false);
@@ -113,17 +114,16 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
 
         log.info("User found in database");
-        return new UserPrincipal(user,roleRepository.getRoleByUserId(user.getId()));
+        return new UserPrincipal(user, roleRepository.getRoleByUserId(user.getId()));
     }
 
     @Override
     public User getUserByEmail(String email) {
+
         try {
-
             return jdbc.queryForObject(SELECT_USER_BY_EMAIL_QUERY, Map.of("email", email), new UserRowMapper());
-
         } catch (EmptyResultDataAccessException ex) {
-            throw new ApiException("No User found by email: " + email);
+            throw new ApiException("No User found by email");
         } catch (Exception ex) {
             log.error(ex.getMessage());
             throw new ApiException("An error occurred. Please try again.");
@@ -144,13 +144,39 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
                     "userId", user.id())
             );
 
-            sendSMS(user.phone(), String.format("""
-                    From: Innovoice
-                    Hi %s,
-                    To activate your account, please enter the verification code: %s
-                    """, user.firstName(), verificationCode));
+//            sendSMS(user.phone(), String.format("""
+//                    From: Innovoice
+//                    Hi %s,
+//                    To activate your account, please enter the verification code: %s
+//                    """, user.firstName(), verificationCode));
+        log.info("VERIFICATION CODE: {}", verificationCode);
 
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            throw new ApiException("An error occurred. Please try again.");
+        }
+    }
 
+    @Override
+    public User verify2FACode(String email, String code) {
+        log.info("Code verification started");
+        try {
+
+            var userByCode = jdbc.queryForObject(SELECT_USER_BY_USER_CODE_QUERY,
+                    Map.of("code", code), new UserRowMapper());
+
+            var userByEmail = getUserByEmail(email);
+
+            if (userByCode != null && userByCode.getEmail().equals(userByEmail.getEmail())) {
+                log.info("Code verified");
+                jdbc.update(DELETE_VERIFICATION_CODE_QUERY, Map.of("code", code));
+                return userByCode;
+            }
+
+            throw new ApiException("Code is invalid. Please try again");
+
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ApiException("Record not found");
         } catch (Exception ex) {
             log.error(ex.getMessage());
             throw new ApiException("An error occurred. Please try again.");
@@ -173,7 +199,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     private String getVerificationUrl(String key, String type) {
         return ServletUriComponentsBuilder
                 .fromCurrentContextPath()
-                .path("/users/verify")
+                .path("/user/verify")
                 .path("/" + type)
                 .path("/" + key)
                 .toUriString();

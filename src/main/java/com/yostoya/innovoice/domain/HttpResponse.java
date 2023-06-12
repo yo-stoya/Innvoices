@@ -19,8 +19,8 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT;
 @JsonInclude(NON_DEFAULT)
 public class HttpResponse {
 
-    @JsonFormat(shape = STRING, pattern = "MM-dd-yyyy HH:mm:ss")
-    protected LocalDateTime timestamp;
+//    @JsonFormat(shape = STRING, pattern = "MM-dd-yyyy HH:mm:ss")
+    protected String timestamp;
     protected int statusCode;
     protected HttpStatus status;
     protected String reason;

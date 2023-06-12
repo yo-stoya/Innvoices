@@ -11,4 +11,6 @@ public interface UserService {
     User getUser(String email);
 
     void sendVerificationCode(UserDTO user);
+
+    UserDTO verify2FACode(String email, String code);
 }

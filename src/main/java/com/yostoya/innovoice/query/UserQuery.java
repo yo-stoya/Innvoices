@@ -23,4 +23,12 @@ public class UserQuery {
             INSERT INTO TwoFactorVerifications (user_id, code, expiration_date)
             VALUES (:userId, :code, :expirationDate)
             """;
+    public static final String SELECT_USER_BY_USER_CODE_QUERY = """
+            SELECT * FROM Users WHERE id = (SELECT user_id FROM TwoFactorVerifications WHERE code = :code);
+            """;
+
+    public static final String DELETE_VERIFICATION_CODE_QUERY = """
+            DELETE FROM TwoFactorVerifications WHERE code = :code      
+            """;
+
 }

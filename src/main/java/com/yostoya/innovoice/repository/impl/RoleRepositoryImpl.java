@@ -73,7 +73,7 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
     @Override
     public Role getRoleByUserId(Long userId) {
 
-        log.info("Fetching Role by User id: {}", userId);
+        log.info("Fetching Role by User id");
 
         try {
 
@@ -82,7 +82,7 @@ public class RoleRepositoryImpl implements RoleRepository<Role> {
                     new RoleRowMapper());
 
         } catch (EmptyResultDataAccessException ex) {
-            throw new ApiException("No role found by User id: " + userId);
+            throw new ApiException("No role found by User id");
         } catch (Exception ex) {
             log.error(ex.getMessage());
             throw new ApiException("Something went wrong. Please try again.");

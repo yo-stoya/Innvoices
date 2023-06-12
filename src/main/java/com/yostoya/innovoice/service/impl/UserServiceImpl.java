@@ -37,4 +37,9 @@ public class UserServiceImpl implements UserService {
         userRepository.sendVerificationCode(user);
     }
 
+    @Override
+    public UserDTO verify2FACode(String email, String code) {
+       return userMapper.toDTO(userRepository.verify2FACode(email, code));
+    }
+
 }

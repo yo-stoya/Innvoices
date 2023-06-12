@@ -14,10 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -55,9 +52,17 @@ public class UserController {
         return user.isUsingMfa() ? sendVerificationCode(user) : sendLoginResponse(user);
     }
 
+    @GetMapping("/verify/code/{email}/{code}")
+    public ResponseEntity<HttpResponse> verify2FACode(@PathVariable("email") String email,
+                                                      @PathVariable("code") String code) {
+        System.out.println("verifyAuthenticationCode");
+        var user = userService.verify2FACode(email, code);
+        return sendLoginResponse(user);
+    }
+
     private ResponseEntity<HttpResponse> sendLoginResponse(UserDTO user) {
         return ok(HttpResponse.builder()
-                .timestamp(now())
+                .timestamp(now().toString())
                 .data(Map.of(
                         "user", user,
                         "access_token", tokenProvider.createAccessToken(getUserPrinciple(user)),
@@ -88,7 +93,7 @@ public class UserController {
 
     private static HttpResponse createdResponse(UserDTO result) {
         return HttpResponse.builder()
-                .timestamp(now())
+                .timestamp(now().toString())
                 .data(Map.of("user", result))
                 .status(CREATED)
                 .statusCode(CREATED.value())
@@ -99,7 +104,7 @@ public class UserController {
     private ResponseEntity<HttpResponse> sendVerificationCode(UserDTO user) {
         userService.sendVerificationCode(user);
         return ok(HttpResponse.builder()
-                .timestamp(now())
+                .timestamp(now().toString())
                 .data(Map.of("user", user))
                 .status(OK)
                 .statusCode(OK.value())
