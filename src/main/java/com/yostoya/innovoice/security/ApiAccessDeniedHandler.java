@@ -21,7 +21,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
-        final var exceptionResponse = HttpResponse.builder()
+        final var responseBody = HttpResponse.builder()
                 .timestamp(now().toString())
                 .status(FORBIDDEN)
                 .statusCode(FORBIDDEN.value())
@@ -31,7 +31,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         response.setContentType(APPLICATION_JSON_VALUE);
         response.setStatus(FORBIDDEN.value());
         final var outputStream = response.getOutputStream();
-        new ObjectMapper().writeValue(outputStream, exceptionResponse);
+        new ObjectMapper().writeValue(outputStream, responseBody);
         outputStream.flush();
     }
 }

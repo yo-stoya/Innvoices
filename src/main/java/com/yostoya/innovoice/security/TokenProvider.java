@@ -1,15 +1,14 @@
 package com.yostoya.innovoice.security;
 
-import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.exceptions.InvalidClaimException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
-import com.auth0.jwt.interfaces.DecodedJWT;
+import com.yostoya.innovoice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,11 +22,16 @@ import static com.auth0.jwt.JWT.create;
 import static com.auth0.jwt.JWT.require;
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class TokenProvider {
+
+    private final UserService userService;
 
     private static final String ISSUER = "Innovoice Inc";
 
@@ -63,14 +67,15 @@ public class TokenProvider {
                 .sign(HMAC512(secret));
     }
 
-    public List<? extends GrantedAuthority> getAuthorities(String token) {
-        return stream(getClaimsFromToken(token))
+    public List<GrantedAuthority> getAuthorities(String token) {
+        String[] claims = getClaimsFromToken(token);
+        return stream(claims)
                 .map(SimpleGrantedAuthority::new)
-                .toList();
+                .collect(toList());
     }
 
     public Authentication getAuthentication(String email, List<GrantedAuthority> authorities, HttpServletRequest request) {
-        final var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+        final var authToken = authenticated(userService.getUserByEmail(email), null, authorities);
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         return authToken;
     }
@@ -80,7 +85,7 @@ public class TokenProvider {
         return isNotEmpty(email) && isNotExpired(verifier, token);
     }
 
-    private String getSubject(String token, HttpServletRequest request) {
+    public String getSubject(String token, HttpServletRequest request) {
         try {
             return getJWTVerifier()
                     .verify(token)
@@ -101,7 +106,7 @@ public class TokenProvider {
     private boolean isNotExpired(JWTVerifier verifier, String token) {
         return verifier.verify(token)
                 .getExpiresAt()
-                .before(new Date());
+                .after(new Date());
     }
 
     private String[] getClaimsFromUser(UserPrincipal userPrincipal) {

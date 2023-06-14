@@ -36,6 +36,10 @@ public record UserDTO(
          Boolean isUsingMfa,
 
          @JsonFormat(shape = STRING, pattern = "dd-MM-yyyy HH:mm:ss")
-         LocalDateTime createdOn
+         LocalDateTime createdOn,
+
+         String role,
+
+         String permissions
 ) {
 }

@@ -160,6 +160,11 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     @Override
     public User verify2FACode(String email, String code) {
         log.info("Code verification started");
+
+        if (isCodeExpired(code)) {
+            throw new ApiException("Code has expired.");
+        }
+
         try {
 
             var userByCode = jdbc.queryForObject(SELECT_USER_BY_USER_CODE_QUERY,
@@ -177,6 +182,18 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
         } catch (EmptyResultDataAccessException ex) {
             throw new ApiException("Record not found");
+        } catch (Exception ex) {
+            log.error(ex.getMessage());
+            throw new ApiException("An error occurred. Please try again.");
+        }
+    }
+
+    private Boolean isCodeExpired(String code) {
+        try {
+            return jdbc.queryForObject(SELECT_EXPIRATION_DATE_QUERY,
+                    Map.of("code", code), Boolean.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ApiException("Invalid code. Please login again.");
         } catch (Exception ex) {
             log.error(ex.getMessage());
             throw new ApiException("An error occurred. Please try again.");

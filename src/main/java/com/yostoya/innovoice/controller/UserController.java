@@ -9,11 +9,13 @@ import com.yostoya.innovoice.security.TokenProvider;
 import com.yostoya.innovoice.security.UserPrincipal;
 import com.yostoya.innovoice.service.RoleService;
 import com.yostoya.innovoice.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -21,10 +23,10 @@ import java.net.URI;
 import java.util.Map;
 
 import static java.time.LocalDateTime.now;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.ResponseEntity.*;
 import static org.springframework.http.ResponseEntity.ok;
+import static org.springframework.security.authentication.UsernamePasswordAuthenticationToken.unauthenticated;
 
 
 @RestController
@@ -47,32 +49,63 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginDTO loginDTO) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDTO.email(), loginDTO.password()));
-        final var user = userService.getUserByEmail(loginDTO.email());
-        return user.isUsingMfa() ? sendVerificationCode(user) : sendLoginResponse(user);
+        final Authentication authentication = authenticate(loginDTO.email(), loginDTO.password());
+        System.out.println(authentication);
+        var user = getAuthenticatedUser(authentication);
+        return user.isUsingMfa() ? ok(sendVerificationCode(user)) : ok(loginResponse(user));
     }
+
+    private UserDTO getAuthenticatedUser(Authentication authentication) {
+        final UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return userMapper.toDTO(principal.getUser());
+    }
+
+    private Authentication authenticate(String email, String password) {
+        final Authentication authentication = authenticationManager.authenticate(unauthenticated(email, password));
+        return authentication;
+    }
+
 
     @GetMapping("/verify/code/{email}/{code}")
     public ResponseEntity<HttpResponse> verify2FACode(@PathVariable("email") String email,
                                                       @PathVariable("code") String code) {
-        System.out.println("verifyAuthenticationCode");
         var user = userService.verify2FACode(email, code);
-        return sendLoginResponse(user);
+        return ok(loginResponse(user));
     }
 
-    private ResponseEntity<HttpResponse> sendLoginResponse(UserDTO user) {
-        return ok(HttpResponse.builder()
+    @GetMapping("/profile")
+    public ResponseEntity<HttpResponse> getProfile(Authentication authentication) {
+        return ok(getHttpResponse(Map.of("user", authentication.getPrincipal()), OK, "Profile retrieved."));
+    }
+
+    @RequestMapping("/error")
+    public ResponseEntity<HttpResponse> handleError(HttpServletRequest request) {
+        return new ResponseEntity<>(HttpResponse.builder()
                 .timestamp(now().toString())
-                .data(Map.of(
+                .reason("No mapping found for " + request.getMethod() + " request on the server")
+                .status(NOT_FOUND)
+                .statusCode(NOT_FOUND.value())
+                .build(), NOT_FOUND
+        );
+    }
+
+    private HttpResponse getHttpResponse(Map<?, ?> data, HttpStatus status, String message) {
+        return HttpResponse.builder()
+                .timestamp(now().toString())
+                .data(data)
+                .status(status)
+                .statusCode(status.value())
+                .message(message)
+                .build();
+
+    }
+
+    private HttpResponse loginResponse(UserDTO user) {
+        return getHttpResponse(Map.of(
                         "user", user,
                         "access_token", tokenProvider.createAccessToken(getUserPrinciple(user)),
-                        "refresh_token", tokenProvider.createRefreshToken(getUserPrinciple(user)))
-                )
-                .status(OK)
-                .statusCode(OK.value())
-                .message("Logged in.")
-                .build()
-        );
+                        "refresh_token", tokenProvider.createRefreshToken(getUserPrinciple(user))),
+                OK, "Logged in.");
     }
 
     private UserPrincipal getUserPrinciple(UserDTO user) {
@@ -91,24 +124,13 @@ public class UserController {
         );
     }
 
-    private static HttpResponse createdResponse(UserDTO result) {
-        return HttpResponse.builder()
-                .timestamp(now().toString())
-                .data(Map.of("user", result))
-                .status(CREATED)
-                .statusCode(CREATED.value())
-                .message("User created.")
-                .build();
+    private HttpResponse createdResponse(UserDTO user) {
+        return getHttpResponse(Map.of("user", user), CREATED, "User created.");
     }
 
-    private ResponseEntity<HttpResponse> sendVerificationCode(UserDTO user) {
+    private HttpResponse sendVerificationCode(UserDTO user) {
         userService.sendVerificationCode(user);
-        return ok(HttpResponse.builder()
-                .timestamp(now().toString())
-                .data(Map.of("user", user))
-                .status(OK)
-                .statusCode(OK.value())
-                .message("Verification code sent.")
-                .build());
+        return getHttpResponse(Map.of("user", user), OK, "Verification code sent.");
     }
+
 }

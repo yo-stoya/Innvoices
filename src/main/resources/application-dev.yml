@@ -21,7 +21,11 @@ spring:
       mode: always
       continue-on-error: false
 
-
+server:
+  error:
+    whitelabel:
+      enabled: false
+    path: /user/error
 
 jwt:
   secret: supersecretcomplexsecret

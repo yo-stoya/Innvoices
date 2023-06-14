@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     private final ApiAuthenticationEntryPoint entryPoint;
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtAuthorizationFilter jwtFilter;
     private static final String[] PUBLIC_URLS = {
             "/user/login/**",
             "/user/register/**",
@@ -44,7 +46,8 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-                .exceptionHandling(exception -> exception.accessDeniedHandler(deniedHandler).authenticationEntryPoint(entryPoint));
+                .exceptionHandling(exception -> exception.accessDeniedHandler(deniedHandler).authenticationEntryPoint(entryPoint))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         http.authorizeHttpRequests(authorize -> {
             authorize.requestMatchers(PUBLIC_URLS).permitAll();
@@ -55,7 +58,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 
     @Bean
     public AuthenticationProvider authenticationProvider() {

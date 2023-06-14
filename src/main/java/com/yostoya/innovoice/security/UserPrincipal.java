@@ -2,6 +2,7 @@ package com.yostoya.innovoice.security;
 
 import com.yostoya.innovoice.domain.Role;
 import com.yostoya.innovoice.domain.User;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,6 +13,7 @@ import java.util.Collection;
 import static java.util.Arrays.stream;
 
 @RequiredArgsConstructor
+@Getter
 public class UserPrincipal implements UserDetails {
 
     private final User user;
